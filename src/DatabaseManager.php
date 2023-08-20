@@ -38,7 +38,7 @@ class DatabaseManager
     {
         if (!is_subclass_of($modelName, BaseModel::class)) return NULL;
         $modelReflectionClass = new ReflectionClass($modelName);
-        $tableName = $modelReflectionClass->getProperty("tableName")->getDefaultValue();
+        $tableName = $modelReflectionClass->getConstant('TABLE_NAME');
         $modelColumns = $modelReflectionClass->getProperties();
         $baseModelPropertiesNames = [];
 
