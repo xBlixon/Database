@@ -2,36 +2,36 @@
 
 namespace Velsym\Database;
 
-use mysqli;
+use PDO;
 use ReflectionClass;
 
 class DatabaseManager
 {
-    public static DatabaseConfig $config;
+    private static ?DatabaseConfig $config = NULL;
+    private static string $DSN = "";
 
     private function __construct(){}
 
-    public static function loadConfig(DatabaseConfig $config)
+    public static function setConfig(DatabaseConfig $config): void
     {
         self::$config = $config;
+        self::$DSN = $config->getDSN();
     }
 
-    private static function getMysqli(): mysqli
+    public static function getConfig(): ?DatabaseConfig
     {
-        return new mysqli(
-            self::$config->hostname ?? NULL,
-            self::$config->username ?? NULL,
-            self::$config->password ?? NULL,
-            self::$config->database ?? NULL,
-            self::$config->port ?? NULL,
-            self::$config->socket ?? NULL
-        );
+        return self::$config;
+    }
+
+    private static function getPDO(): PDO
+    {
+        return new PDO(self::$DSN, self::$config->username, self::$config->password);
     }
 
     public static function createModelTable(string $modelName): void
     {
         if(!$sql = self::createModelTableSQL($modelName)) return;
-        self::getMysqli()->query($sql);
+        self::getPDO()->query($sql);
     }
 
     public static function createModelTableSQL(string $modelName): string|NULL
@@ -69,8 +69,7 @@ class DatabaseManager
 
         if($columns['id']) $stringifiedColumns .= "PRIMARY KEY (id)";
         else $stringifiedColumns = rtrim($stringifiedColumns, ", ");
-        $sql = /** @lang text */ "CREATE TABLE $tableName ( $stringifiedColumns );";
-        return $sql;
+        return /** @lang text */ "CREATE TABLE $tableName ( $stringifiedColumns );";
     }
 
     public static function varTypeToDbType(string $type): string
