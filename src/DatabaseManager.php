@@ -5,6 +5,7 @@ namespace Velsym\Database;
 use PDO;
 use PDOStatement;
 use ReflectionClass;
+use ReflectionProperty;
 
 class DatabaseManager
 {
@@ -95,19 +96,22 @@ class DatabaseManager
         if ($modelInstance->getId() !== -1) {
             $setString = "";
             foreach ($columns as $column => $type) {
-                $setString .= "$column {$modelInstance->{$column}}, ";
+                $property = new ReflectionProperty($modelInstance::class, $column);
+                $value = ($property->isInitialized($modelInstance) ? $property->getValue($modelInstance) : "NULL");
+                $setString .= "$tableName.$column = '$value', ";
             }
             $setString = rtrim($setString, ", ");
 
             $sql = /** @lang text */
-                "UPDATE $tableName SET $setString WHERE 'id' = {$modelInstance->getId()};";
+                "UPDATE $tableName SET $setString WHERE id = {$modelInstance->getId()};";
             self::query($sql);
         } else {
             $insertColumns = implode(", ", array_keys($columns));
             $insertValues = "";
             foreach ($columns as $column => $type) {
-                $column = ucfirst($column);
-                $insertValues .= "'{$modelInstance->{"get$column"}()}', ";
+                $property = new ReflectionProperty($modelInstance::class, $column);
+                $value = ($property->isInitialized($modelInstance) ? $property->getValue($modelInstance) : "NULL");
+                $insertValues .= "'$value', ";
             }
             $insertValues = rtrim($insertValues, ", ");
             $sql = /** @lang text */
@@ -137,14 +141,14 @@ class DatabaseManager
         $sql .= ";";
         $model = new $modelClass();
         $modelSQL = self::getPDO()->query($sql)->fetch();
-        (new \ReflectionProperty(BaseModel::class, 'id'))->setValue($model, $modelSQL['id']);
+        (new ReflectionProperty(BaseModel::class, 'id'))->setValue($model, $modelSQL['id']);
         unset($modelSQL['id']);
         foreach ($modelSQL as $column => $value) {
             if(is_int($column)) {
                 unset($modelSQL[$column]);
                 continue;
             }
-            (new \ReflectionProperty($model, $column))->setValue($model, $value);
+            (new ReflectionProperty($model, $column))->setValue($model, $value);
         }
         return $model;
     }
