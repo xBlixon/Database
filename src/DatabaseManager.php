@@ -148,4 +148,10 @@ class DatabaseManager
         }
         return $model;
     }
+
+    public static function isPresentInDatabase(BaseModel $model): bool
+    {
+        $fetchedModel = DatabaseManager::getModel($model::class, ['id' => $model->getId()]);
+        return $model == $fetchedModel;
+    }
 }
