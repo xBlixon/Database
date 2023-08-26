@@ -5,12 +5,14 @@ namespace Velsym\Database;
 use PDO;
 use PDOStatement;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionProperty;
 
 class DatabaseManager
 {
     private static ?DatabaseConfig $config = NULL;
     private static string $DSN = "";
+    private static PDO $PDO;
 
     private function __construct()
     {
@@ -20,6 +22,7 @@ class DatabaseManager
     {
         self::$config = $config;
         self::$DSN = $config->getDSN();
+        self::$PDO = new PDO(self::$DSN, self::$config->username, self::$config->password);
     }
 
     public static function getConfig(): ?DatabaseConfig
@@ -27,20 +30,15 @@ class DatabaseManager
         return self::$config;
     }
 
-    private static function getPDO(): PDO
-    {
-        return new PDO(self::$DSN, self::$config->username, self::$config->password);
-    }
-
     public static function query(string $query): false|PDOStatement
     {
-        return self::getPDO()->query($query);
+        return self::$PDO->query($query);
     }
 
     public static function createModelTable(string|BaseModel $model): void
     {
         if (!$sql = self::createModelTableQuery($model)) return;
-        self::getPDO()->query($sql);
+        self::$PDO->query($sql);
     }
 
     public static function createModelTableQuery(string|BaseModel $model): string|null
@@ -89,7 +87,13 @@ class DatabaseManager
         return is_subclass_of($model, BaseModel::class);
     }
 
-    public static function saveModel(BaseModel $modelInstance): void
+    /**
+     * @template Model
+     * @param BaseModel|Model $modelInstance
+     * @return Model
+     * @throws ReflectionException
+     */
+    public static function saveModel(BaseModel $modelInstance): BaseModel
     {
         $tableName = $modelInstance::TABLE_NAME;
         $columns = self::getModelColumns($modelInstance);
@@ -105,6 +109,7 @@ class DatabaseManager
             $sql = /** @lang text */
                 "UPDATE $tableName SET $setString WHERE id = {$modelInstance->getId()};";
             self::query($sql);
+            return $modelInstance;
         } else {
             $insertColumns = implode(", ", array_keys($columns));
             $insertValues = "";
@@ -117,6 +122,7 @@ class DatabaseManager
             $sql = /** @lang text */
                 "INSERT INTO $tableName ($insertColumns) VALUES ( $insertValues );";
             self::query($sql);
+            return self::getModel($modelInstance::class, ['id' => self::$PDO->lastInsertId()]);
         }
     }
 
@@ -140,7 +146,7 @@ class DatabaseManager
 
         $sql .= ";";
         $model = new $modelClass();
-        $modelSQL = self::getPDO()->query($sql)->fetch();
+        $modelSQL = self::$PDO->query($sql)->fetch();
         (new ReflectionProperty(BaseModel::class, 'id'))->setValue($model, $modelSQL['id']);
         unset($modelSQL['id']);
         foreach ($modelSQL as $column => $value) {
