@@ -89,7 +89,7 @@ class DatabaseManager
 
     /**
      * @template Model
-     * @param BaseModel|Model $modelInstance
+     * @param Model $modelInstance
      * @return Model
      * @throws ReflectionException
      */
@@ -128,7 +128,7 @@ class DatabaseManager
 
     /**
      * @template Model
-     * @param Model|string|BaseModel $modelClass
+     * @param Model $modelClass
      * @return Model
      */
     public static function getModel(string|BaseModel $modelClass, array $params = [])
