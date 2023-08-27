@@ -129,7 +129,7 @@ class DatabaseManager
     /**
      * @template Model
      * @param Model $modelClass
-     * @return Model
+     * @return Model|NULL
      */
     public static function getModel(string|BaseModel $modelClass, array $params = [])
     {
@@ -146,7 +146,7 @@ class DatabaseManager
 
         $sql .= ";";
         $model = new $modelClass();
-        $modelSQL = self::$PDO->query($sql)->fetch();
+        if(!$modelSQL = self::$PDO->query($sql)->fetch()) return NULL;
         (new ReflectionProperty(BaseModel::class, 'id'))->setValue($model, $modelSQL['id']);
         unset($modelSQL['id']);
         foreach ($modelSQL as $column => $value) {
