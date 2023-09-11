@@ -22,7 +22,6 @@ class DatabaseManager
     {
         self::$config = $config;
         self::$DSN = $config->getDSN();
-        self::$PDO = new PDO(self::$DSN, self::$config->username, self::$config->password);
     }
 
     public static function getConfig(): ?DatabaseConfig
@@ -30,15 +29,28 @@ class DatabaseManager
         return self::$config;
     }
 
+    private static function connect(): PDO
+    {
+        if(!isset(self::$PDO)) {
+            self::$PDO = new PDO(self::$DSN, self::$config->username, self::$config->password);
+        }
+        return self::$PDO;
+    }
+
+    public static function lastInsertId(): false|string
+    {
+        return self::connect()->lastInsertId();
+    }
+
     public static function query(string $query): false|PDOStatement
     {
-        return self::$PDO->query($query);
+        return self::connect()->query($query);
     }
 
     public static function createModelTable(string|BaseModel $model): void
     {
         if (!$sql = self::createModelTableQuery($model)) return;
-        self::$PDO->query($sql);
+        self::query($sql);
     }
 
     public static function createModelTableQuery(string|BaseModel $model): string|null
