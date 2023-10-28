@@ -69,7 +69,7 @@ class DatabaseManager
             $stringifiedColumns .= "$columnName $columnType, ";
         }
 
-        return /** @lang text */ "CREATE TABLE $tableName ( id INT NOT NULL AUTO_INCREMENT, {$stringifiedColumns}PRIMARY KEY (id) );";
+        return "CREATE TABLE IF NOT EXISTS $tableName ( id INT NOT NULL AUTO_INCREMENT, {$stringifiedColumns}PRIMARY KEY (id) );";
     }
 
     public static function varTypeToDbType(string $type): string
@@ -118,8 +118,7 @@ class DatabaseManager
             }
             $setString = rtrim($setString, ", ");
 
-            $sql = /** @lang text */
-                "UPDATE $tableName SET $setString WHERE id = {$modelInstance->getId()};";
+            $sql = "UPDATE $tableName SET $setString WHERE id = {$modelInstance->getId()};";
             self::query($sql);
             return $modelInstance;
         } else {
@@ -131,8 +130,7 @@ class DatabaseManager
                 $insertValues .= "'$value', ";
             }
             $insertValues = rtrim($insertValues, ", ");
-            $sql = /** @lang text */
-                "INSERT INTO $tableName ($insertColumns) VALUES ( $insertValues );";
+            $sql = "INSERT INTO $tableName ($insertColumns) VALUES ( $insertValues );";
             self::query($sql);
             return self::getModel($modelInstance::class, ['id' => self::$PDO->lastInsertId()]);
         }
@@ -145,8 +143,7 @@ class DatabaseManager
      */
     public static function getModel(string|BaseModel $modelClass, array $params = [])
     {
-        $sql = /** @lang text */
-            "SELECT * FROM " . $modelClass::TABLE_NAME;
+        $sql = "SELECT * FROM " . $modelClass::TABLE_NAME;
         if (!empty($params)) {
             $whereParams = [];
             foreach ($params as $column => $value) {
