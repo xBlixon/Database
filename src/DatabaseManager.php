@@ -22,6 +22,7 @@ class DatabaseManager
     {
         self::$config = $config;
         self::$DSN = $config->getDSN();
+        self::$PDO = new PDO(self::$DSN, self::$config->username, self::$config->password);
     }
 
     public static function getConfig(): ?DatabaseConfig
@@ -29,22 +30,14 @@ class DatabaseManager
         return self::$config;
     }
 
-    private static function connect(): PDO
-    {
-        if(!isset(self::$PDO)) {
-            self::$PDO = new PDO(self::$DSN, self::$config->username, self::$config->password);
-        }
-        return self::$PDO;
-    }
-
     public static function lastInsertId(): false|string
     {
-        return self::connect()->lastInsertId();
+        return self::$PDO->lastInsertId();
     }
 
     public static function query(string $query): false|PDOStatement
     {
-        return self::connect()->query($query);
+        return self::$PDO->query($query);
     }
 
     public static function createModelTable(string|BaseModel $model): void
@@ -155,7 +148,7 @@ class DatabaseManager
 
         $sql .= ";";
         $model = new $modelClass();
-        if(!$modelSQL = self::connect()->query($sql)->fetch()) return NULL;
+        if(!$modelSQL = self::$PDO->query($sql)->fetch()) return NULL;
         (new ReflectionProperty(BaseModel::class, 'id'))->setValue($model, $modelSQL['id']);
         unset($modelSQL['id']);
         foreach ($modelSQL as $column => $value) {
